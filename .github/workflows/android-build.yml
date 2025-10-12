@@ -62,7 +62,7 @@ jobs:
         ./gradlew assembleDebug
 
     - name: Upload APK artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: myijkplayer-apk
         path: android/ijkplayer-example/app/build/outputs/apk/debug/app-debug.apk
