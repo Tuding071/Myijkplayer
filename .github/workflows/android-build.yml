@@ -1,0 +1,68 @@
+name: Build Myijkplayer APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+
+    env:
+      ANDROID_SDK_ROOT: /usr/local/android-sdk
+      NDK_HOME: /usr/local/android-ndk
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git wget unzip build-essential yasm pkg-config autoconf automake libtool
+
+    - name: Install Android SDK Command-line tools
+      run: |
+        mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
+        unzip cmdline-tools.zip -d $ANDROID_SDK_ROOT/cmdline-tools
+        rm cmdline-tools.zip
+        yes | $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
+
+    - name: Set environment for Android
+      run: |
+        echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+        echo "PATH=$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH" >> $GITHUB_ENV
+
+    - name: Initialize Android project
+      run: |
+        cd android
+        chmod +x ./init-android.sh
+        ./init-android.sh
+
+    - name: Compile FFmpeg native libraries
+      run: |
+        cd android/contrib
+        chmod +x ./compile-ffmpeg.sh
+        ./compile-ffmpeg.sh clean
+        ./compile-ffmpeg.sh all
+
+    - name: Compile IjkPlayer JNI
+      run: |
+        cd ../
+        chmod +x ./compile-ijk.sh
+        ./compile-ijk.sh all
+
+    - name: Build Example APK
+      run: |
+        cd android/ijkplayer-example
+        ./gradlew assembleDebug
+
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: myijkplayer-apk
+        path: android/ijkplayer-example/app/build/outputs/apk/debug/app-debug.apk
