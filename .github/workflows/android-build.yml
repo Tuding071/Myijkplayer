@@ -1,4 +1,4 @@
-name: Build Myijkplayer APK
+name: Build Myijkplayer APK (arm64 only)
 
 on:
   push:
@@ -8,12 +8,12 @@ on:
 
 jobs:
   build:
-    name: Build APK
+    name: Build APK (arm64)
     runs-on: ubuntu-latest
 
     env:
-      ANDROID_SDK_ROOT: /usr/local/android-sdk
-      NDK_HOME: /usr/local/android-ndk
+      ANDROID_SDK_ROOT: $HOME/android-sdk
+      NDK_HOME: $HOME/android-ndk
 
     steps:
     - name: Checkout repository
@@ -43,15 +43,14 @@ jobs:
         chmod +x ./init-android.sh
         ./init-android.sh
 
-    - name: Compile FFmpeg native libraries
+    - name: Build FFmpeg and IjkPlayer JNI (arm64 only)
       run: |
         cd android/contrib
         chmod +x ./compile-ffmpeg.sh
+        # Force only arm64-v8a
+        sed -i 's/APP_ABI=.*/APP_ABI="arm64-v8a"/' config/module-android.sh
         ./compile-ffmpeg.sh clean
         ./compile-ffmpeg.sh all
-
-    - name: Compile IjkPlayer JNI
-      run: |
         cd ../
         chmod +x ./compile-ijk.sh
         ./compile-ijk.sh all
@@ -64,5 +63,5 @@ jobs:
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
-        name: myijkplayer-apk
+        name: myijkplayer-arm64-apk
         path: android/ijkplayer-example/app/build/outputs/apk/debug/app-debug.apk
